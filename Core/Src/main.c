@@ -118,7 +118,7 @@ uint16_t			UART_Rx_Size;
 uint16_t			UART_Rx_Current_Size;
 
 uint8_t				dataReady;
-uint8_t				lcd_soc;
+uint8_t				lcd_soc = 110;
 uint16_t			lcd_alarms = 523;
 uint16_t			lcd_temp;
 /* USER CODE END 0 */
@@ -638,6 +638,7 @@ void startGetBMSDataTask(void *argument)
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
+  //updateLCD();
 	/* Infinite loop */
   for(;;)
   {
