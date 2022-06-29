@@ -26,8 +26,12 @@
 #include "jk_bms_485.h"
 #include "jk_bms_pylon.h"
 
+#ifdef ENABLE_LCD
+
 #include "ILI9341_GFX.h"
 #include "ILI9341_STM32_Driver.h"
+
+#endif ENABLE_LCD
 
 
 #define	__ENABLE_CONSOLE_DEBUG__	1
@@ -116,11 +120,14 @@ uint8_t				USB_Console_TX_Buffer_Count = 0;
 uint8_t             UART_Rx_Buffer[1024];
 uint16_t			UART_Rx_Size;
 uint16_t			UART_Rx_Current_Size;
+#ifdef ENABLE_LCD
 
 uint8_t				dataReady;
 uint8_t				lcd_soc = 110;
 uint16_t			lcd_alarms = 523;
 uint16_t			lcd_temp;
+
+#endif ENABLE_LCD
 /* USER CODE END 0 */
 
 /**
@@ -319,6 +326,7 @@ static void MX_SPI2_Init(void)
 
   /* USER CODE END SPI2_Init 1 */
   /* SPI2 parameter configuration*/
+
   hspi2.Instance = SPI2;
   hspi2.Init.Mode = SPI_MODE_MASTER;
   hspi2.Init.Direction = SPI_DIRECTION_2LINES;
@@ -336,7 +344,12 @@ static void MX_SPI2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN SPI2_Init 2 */
+#ifdef ENABLE_LCD
+
   lcd_spi = hspi2;
+
+#endif ENABLE_LCD
+
 
   /* USER CODE END SPI2_Init 2 */
 
@@ -485,6 +498,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
 	}
 }
 
+#ifdef ENABLE_LCD
+
 void drawBattery(uint8_t soc) {
 	if (lcd_soc != soc) {
 		uint8_t x = 5;
@@ -546,7 +561,6 @@ void drawVoltage_Current() {
 	sprintf(str, "%02d", (int)(current%100));
 	ILI9341_Draw_Text(str, 200, 70, DARKCYAN, Font_37x47, WHITE);
 	ILI9341_Draw_Text("A", 275, 86, DARKCYAN, Font_34x36, WHITE);
-
 }
 
 void drawTemperature() {
@@ -604,8 +618,10 @@ void drawAlarms() {
 	ILI9341_Draw_Text_Space("BOVT", 215, 160, color, Font_26_B, WHITE, 25);
 
 }
+#endif ENABLE_LCD
 
 void updateLCD() {
+#ifdef ENABLE_LCD
 	taskENTER_CRITICAL();
 	drawBattery(jk_bms_battery_info.battery_status.battery_soc);
 	drawVoltage_Current();
@@ -622,6 +638,7 @@ void updateLCD() {
 		drawAlarms();
 	}
 	taskEXIT_CRITICAL();
+#endif ENABLE_LCD
 }
 
 /* USER CODE END 4 */

@@ -66,8 +66,15 @@ void Error_Handler(void);
 #define TFT_CS_Pin GPIO_PIN_12
 #define TFT_CS_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
+
+#define ENABLE_LCD
+
+#ifdef ENABLE_LCD
+
 #define LCD_BL_Pin GPIO_PIN_12
 #define LCD_BL_GPIO_Port GPIOB
+
+#endif ENABLE_LCD
 
 /* USER CODE END Private defines */
 
