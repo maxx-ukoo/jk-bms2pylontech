@@ -31,7 +31,7 @@
 #include "ILI9341_GFX.h"
 #include "ILI9341_STM32_Driver.h"
 
-#endif ENABLE_LCD
+#endif /* ENABLE_LCD */
 
 
 #define	__ENABLE_CONSOLE_DEBUG__	1
@@ -118,14 +118,15 @@ uint8_t				USB_Console_TX_Buffer_Count = 0;
 uint8_t             UART_Rx_Buffer[1024];
 uint16_t			UART_Rx_Size;
 uint16_t			UART_Rx_Current_Size;
+uint8_t				dataReady;
 #ifdef ENABLE_LCD
 
-uint8_t				dataReady;
+
 uint8_t				lcd_soc = 110;
 uint16_t			lcd_alarms = 523;
 uint16_t			lcd_temp;
 
-#endif ENABLE_LCD
+#endif /* ENABLE_LCD */
 /* USER CODE END 0 */
 
 /**
@@ -202,9 +203,14 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
+#ifdef ENABLE_LCD
+
   ILI9341_Init();
   ILI9341_Fill_Screen(WHITE);
   ILI9341_Set_Rotation(SCREEN_HORIZONTAL_2);
+
+#endif /* ENABLE_LCD */
+
   //ILI9341_Init();
   //ILI9341_FillScreen(ILI9341_BLACK);
   /* USER CODE END RTOS_EVENTS */
@@ -344,7 +350,7 @@ static void MX_SPI2_Init(void)
 
   lcd_spi = hspi2;
 
-#endif ENABLE_LCD
+#endif
 
 
   /* USER CODE END SPI2_Init 2 */
@@ -444,8 +450,7 @@ PUTCHAR_PROTOTYPE
 		CDC_Transmit_FS(USB_Console_TX_Buffer, USB_Console_TX_Buffer_Count);
 		USB_Console_TX_Buffer_Count = 0;
 	}
-	//xQueueSend(consoleOutputQueueHandle, (void *)&ch, 1);
-	//HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 0xFFFF);
+
 	return ch;
 }
 #endif /* __ENABLE_CONSOLE_DEBUG__ */
@@ -580,7 +585,7 @@ void drawAlarms() {
 	ILI9341_Draw_Text_Space("BOVT", 215, 160, color, Font_26_B, WHITE, 25);
 
 }
-#endif ENABLE_LCD
+#endif /* ENABLE_LCD */
 
 void updateLCD() {
 #ifdef ENABLE_LCD
@@ -600,7 +605,7 @@ void updateLCD() {
 		drawAlarms();
 	}
 	taskEXIT_CRITICAL();
-#endif ENABLE_LCD
+#endif
 }
 
 /* USER CODE END 4 */
@@ -661,7 +666,23 @@ void startEvery10msTask(void *argument)
 		  }
 		#endif /* __ENABLE_CONSOLE_DEBUG__ */
 		  Parse_JK_Battery_485_Status_Frame(&UART_Rx_Buffer[11]);
-
+		#ifdef __ENABLE_CONSOLE_DEBUG__
+		  printf("Decoded data:\r\n");
+		  printf("Cells number: %u\r\n", jk_bms_battery_info.cells_number);
+		  printf("Battery temperature 1: %i\r\n", jk_bms_battery_info.battery_status.power_tube_temperature);
+		  printf("Battery temperature 1: %i\r\n", jk_bms_battery_info.battery_status.sensor_temperature_1);
+		  printf("Battery temperature 1: %i\r\n", jk_bms_battery_info.battery_status.sensor_temperature_2);
+		  printf("Battery voltage: %u\r\n", jk_bms_battery_info.battery_status.battery_voltage);
+		  printf("Battery current: %i\r\n", jk_bms_battery_info.battery_status.battery_current);
+		  printf("SOC: %u\r\n", jk_bms_battery_info.battery_status.battery_soc);
+		  printf("Battery cycles: %i\r\n", jk_bms_battery_info.battery_status.battery_cycles);
+		  printf("Battery cycle capacity: %lu\r\n", jk_bms_battery_info.battery_status.battery_cycle_capacity);
+		  printf("Battery alarms 0x%X\r\n", jk_bms_battery_info.battery_alarms.alarm_data);
+		  printf("Battery charge voltage: %u\r\n", jk_bms_battery_info.battery_limits.battery_charge_voltage);
+		  printf("Battery discharge voltage: %u\r\n", jk_bms_battery_info.battery_limits.battery_discharge_voltage);
+		  printf("Battery charge current limit: %i\r\n", jk_bms_battery_info.battery_limits.battery_charge_current_limit);
+		  printf("Battery discharge current limit: %i\r\n", jk_bms_battery_info.battery_limits.battery_discharge_current_limit);
+		#endif /* __ENABLE_CONSOLE_DEBUG__ */
 		  for (int i=0; i<200; i++) {
 		   UART_Rx_Buffer[i] = 0;
 		  }

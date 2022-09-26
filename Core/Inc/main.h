@@ -74,7 +74,7 @@ void Error_Handler(void);
 #define LCD_BL_Pin GPIO_PIN_12
 #define LCD_BL_GPIO_Port GPIOB
 
-#endif ENABLE_LCD
+#endif /* ENABLE_LCD */
 
 /* USER CODE END Private defines */
 

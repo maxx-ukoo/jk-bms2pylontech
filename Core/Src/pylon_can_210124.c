@@ -664,6 +664,8 @@ int pylon_can_210124_battery_error_warnings_pack(
     dst_p[3] |= pack_left_shift_u8(src_p->charge_current_high_warn, 0u, 0x01u);
     dst_p[3] |= pack_left_shift_u8(src_p->internal_error_warn, 3u, 0x08u);
     dst_p[4] |= pack_left_shift_u8(src_p->module_numbers, 0u, 0xffu);
+    dst_p[5] = 0x50;
+    dst_p[6] = 0x4e;
 
     return (7);
 }
