@@ -7,7 +7,8 @@
 
 #include "jk_bms_485.h"
 
-uint8_t request_Status_Frame[] = {0x4E, 0x57, 0x00, 0x13, 0x00, 0x00, 0x00, 0x00, 0x06, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x00, 0x00, 0x01, 0x29};
+uint8_t request_Status_Frame_v0[] = {0x4E, 0x57, 0x00, 0x13, 0x00, 0x00, 0x00, 0x00, 0x06, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x00, 0x00, 0x01, 0x29};
+uint8_t request_Status_Frame_v1[] = {0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77};
 
 uint16_t getCurrent(const uint16_t value) {
 	// TODO test current data on real BMS
@@ -25,11 +26,17 @@ int8_t getTemperature(const int16_t value) {
    return value;
 };
 
-void Request_JK_Battery_485_Status_Frame(UART_HandleTypeDef uart) {
-	HAL_UART_Transmit(&uart, request_Status_Frame, 21, 1000);
+void Request_JK_Battery_485_Status_Frame(UART_HandleTypeDef uart, bms_type type) {
+	switch(type){
+	    case v1:
+	    	HAL_UART_Transmit(&uart, request_Status_Frame_v1, 21, 1000);
+	    	return;
+	    default:
+	    	HAL_UART_Transmit(&uart, request_Status_Frame_v0, 21, 1000);
+	}
 }
 
-bool JK_Battery_485_Check_Frame_CRC(uint8_t *data, uint16_t frame_size) {
+bool JK_Battery_485_Check_Frame_CRC_v0(uint8_t *data, uint16_t frame_size) {
 	if (frame_size < 4) {
 		return false;
 	}
@@ -45,7 +52,38 @@ bool JK_Battery_485_Check_Frame_CRC(uint8_t *data, uint16_t frame_size) {
 	return false;
 }
 
-void Parse_JK_Battery_485_Status_Frame(uint8_t *data) {
+bool JK_Battery_485_Check_Frame_CRC_v1(uint8_t *data, uint16_t frame_size) {
+	if (frame_size < 5) {
+		return false;
+	}
+	uint16_t data_len = (uint16_t)data[2] << 8 | data[2 + 1];
+	if (data[data_len+6] == 0x77) {
+		return true;
+	}
+
+	//TODO implement full CRC
+	/*
+	uint16_t computed_crc = 0;
+	for (uint16_t i = 0; i < data_len-2; i++) {
+		computed_crc = computed_crc + data[i];
+	}
+	uint16_t remote_crc = (uint16_t)data[data_len] << 8 | data[data_len + 1];
+	if (computed_crc == remote_crc) {
+		return true;
+	}*/
+	return false;
+}
+
+bool JK_Battery_485_Check_Frame_CRC(uint8_t *data, uint16_t frame_size, bms_type type) {
+	switch(type){
+	    case v1:
+	    	return JK_Battery_485_Check_Frame_CRC_v1(data, frame_size);
+	    default:
+	    	return JK_Battery_485_Check_Frame_CRC_v0(data, frame_size);
+	}
+}
+
+void Parse_JK_Battery_485_Status_Frame_v0(uint8_t *data) {
 	  uint8_t cells = data[1] / 3;
 	  jk_bms_battery_info.cells_number = cells;
 	  for (uint8_t i = 0; i < cells; i++) {
@@ -132,5 +170,44 @@ void Parse_JK_Battery_485_Status_Frame(uint8_t *data) {
 	  // 0x99 0x00 0x05: Charging overcurrent protection value        5A                         1.0 A
 	  jk_bms_battery_info.battery_limits.battery_charge_current_limit = (uint16_t) data[pos + 1] << 8 | data[pos + 2];
 
+}
 
+void Parse_JK_Battery_485_Status_Frame_v1(uint8_t *data) {
+
+	  jk_bms_battery_info.cells_number = data[23];
+	  jk_bms_battery_info.battery_status.battery_voltage = (uint16_t) data[2] << 8 | data[3];
+	  jk_bms_battery_info.battery_status.battery_current = (uint16_t) data[4] << 8 | data[5];
+	  jk_bms_battery_info.battery_status.battery_soc = (uint8_t) data[21];
+	  jk_bms_battery_info.battery_status.battery_cycles =  (uint16_t) data[10] << 8 | data[11];
+	  jk_bms_battery_info.battery_status.temperature_sensor_count = (uint8_t) data[24];
+
+	  if (jk_bms_battery_info.battery_status.temperature_sensor_count > 0) {
+		  jk_bms_battery_info.battery_status.power_tube_temperature = (((uint16_t) data[25] << 8 | data[26]) - 2731)/10;
+	  }
+
+	  if (jk_bms_battery_info.battery_status.temperature_sensor_count > 1) {
+		  jk_bms_battery_info.battery_status.sensor_temperature_1 = (((uint16_t) data[27] << 8 | data[28]) - 2731)/10;
+	  }
+	  if (jk_bms_battery_info.battery_status.temperature_sensor_count > 2) {
+		  jk_bms_battery_info.battery_status.sensor_temperature_2 = (((uint16_t) data[29] << 8 | data[30]) - 2731)/10;
+	  }
+
+	  //TODO add 3rd temp sensor
+
+	  // No data in response for these values
+	  //jk_bms_battery_info.battery_status.battery_cycle_capacity
+	  //jk_bms_battery_info.battery_alarms.alarm_data;
+	  //jk_bms_battery_info.battery_limits.battery_charge_voltage;
+	  //jk_bms_battery_info.battery_limits.battery_discharge_voltage;
+	  //jk_bms_battery_info.battery_limits.battery_discharge_current_limit;
+	  //jk_bms_battery_info.battery_limits.battery_charge_current_limit;
+}
+
+void Parse_JK_Battery_485_Status_Frame(uint8_t *data, bms_type type) {
+	switch(type){
+	    case v1:
+	    	return Parse_JK_Battery_485_Status_Frame_v1(&data[2]);
+	    default:
+	    	return Parse_JK_Battery_485_Status_Frame_v0(&data[11]);
+	}
 }

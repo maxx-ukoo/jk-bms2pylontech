@@ -65,9 +65,11 @@ void Error_Handler(void);
 #define TFT_RST_GPIO_Port GPIOB
 #define TFT_CS_Pin GPIO_PIN_12
 #define TFT_CS_GPIO_Port GPIOB
+#define BMS_TYPE_SWITCH_Pin GPIO_PIN_0
+#define BMS_TYPE_SWITCH_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
 
-#define ENABLE_LCD
+//#define ENABLE_LCD
 
 #ifdef ENABLE_LCD
 

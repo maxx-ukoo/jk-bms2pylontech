@@ -119,6 +119,7 @@ uint8_t             UART_Rx_Buffer[1024];
 uint16_t			UART_Rx_Size;
 uint16_t			UART_Rx_Current_Size;
 uint8_t				dataReady;
+bms_type			protocol_type = v0;
 #ifdef ENABLE_LCD
 
 
@@ -366,14 +367,18 @@ static void MX_USART1_UART_Init(void)
 {
 
   /* USER CODE BEGIN USART1_Init 0 */
-
+  uint32_t port_rate = 115200;
+  if (!HAL_GPIO_ReadPin (BMS_TYPE_SWITCH_GPIO_Port, BMS_TYPE_SWITCH_Pin)) {
+	  port_rate = 9600;
+	  protocol_type = v1;
+  }
   /* USER CODE END USART1_Init 0 */
 
   /* USER CODE BEGIN USART1_Init 1 */
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = port_rate;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -405,6 +410,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED_D2_GPIO_Port, LED_D2_Pin, GPIO_PIN_RESET);
@@ -436,6 +442,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : BMS_TYPE_SWITCH_Pin */
+  GPIO_InitStruct.Pin = BMS_TYPE_SWITCH_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(BMS_TYPE_SWITCH_GPIO_Port, &GPIO_InitStruct);
+
 }
 
 /* USER CODE BEGIN 4 */
@@ -447,8 +459,10 @@ PUTCHAR_PROTOTYPE
 	USB_Console_TX_Buffer[USB_Console_TX_Buffer_Count] = ch;
 	USB_Console_TX_Buffer_Count += 1;
 	if (USB_Console_TX_Buffer_Count > 128) {
+		taskENTER_CRITICAL();
 		CDC_Transmit_FS(USB_Console_TX_Buffer, USB_Console_TX_Buffer_Count);
 		USB_Console_TX_Buffer_Count = 0;
+		taskEXIT_CRITICAL();
 	}
 
 	return ch;
@@ -458,7 +472,7 @@ PUTCHAR_PROTOTYPE
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
 	if (huart->Instance == USART1) {
 		UART_Rx_Size += size;
-		if (JK_Battery_485_Check_Frame_CRC(UART_Rx_Buffer, UART_Rx_Size) == true) {
+		if (JK_Battery_485_Check_Frame_CRC(UART_Rx_Buffer, UART_Rx_Size, protocol_type) == true) {
 			UART_Rx_Current_Size = 10;
 		} else {
 			HAL_UARTEx_ReceiveToIdle_IT(huart, &UART_Rx_Buffer[UART_Rx_Size], 350);
@@ -633,7 +647,7 @@ void startGetBMSDataTask(void *argument)
 	  if (UART_Rx_Current_Size == 0) {
 		  UART_Rx_Size = 0;
 		  HAL_UARTEx_ReceiveToIdle_IT(&huart1, UART_Rx_Buffer, 350);
-		  Request_JK_Battery_485_Status_Frame(huart1);
+		  Request_JK_Battery_485_Status_Frame(huart1, protocol_type);
 		  HAL_GPIO_TogglePin(LED_D2_GPIO_Port, LED_D2_Pin); //Toggle the state of pin
 	  }
 
@@ -665,15 +679,18 @@ void startEvery10msTask(void *argument)
 			 printf("\r\n");
 		  }
 		#endif /* __ENABLE_CONSOLE_DEBUG__ */
-		  Parse_JK_Battery_485_Status_Frame(&UART_Rx_Buffer[11]);
+		  Parse_JK_Battery_485_Status_Frame(&UART_Rx_Buffer, protocol_type);
 		#ifdef __ENABLE_CONSOLE_DEBUG__
-		  printf("Decoded data:\r\n");
+		  printf("Decoded data, protocol type: %u\r\n", protocol_type);
 		  printf("Cells number: %u\r\n", jk_bms_battery_info.cells_number);
-		  printf("Battery temperature 1: %i\r\n", jk_bms_battery_info.battery_status.power_tube_temperature);
+		  printf("Power tube temperature: %i\r\n", jk_bms_battery_info.battery_status.power_tube_temperature);
 		  printf("Battery temperature 1: %i\r\n", jk_bms_battery_info.battery_status.sensor_temperature_1);
-		  printf("Battery temperature 1: %i\r\n", jk_bms_battery_info.battery_status.sensor_temperature_2);
+		  printf("Battery temperature 2: %i\r\n", jk_bms_battery_info.battery_status.sensor_temperature_2);
 		  printf("Battery voltage: %u\r\n", jk_bms_battery_info.battery_status.battery_voltage);
 		  printf("Battery current: %i\r\n", jk_bms_battery_info.battery_status.battery_current);
+
+		  printf("Battery current bytes: Hi: %u Lo: %u\r\n", jk_bms_battery_info.battery_status.current_hi_byte, jk_bms_battery_info.battery_status.current_low_byte);
+
 		  printf("SOC: %u\r\n", jk_bms_battery_info.battery_status.battery_soc);
 		  printf("Battery cycles: %i\r\n", jk_bms_battery_info.battery_status.battery_cycles);
 		  printf("Battery cycle capacity: %lu\r\n", jk_bms_battery_info.battery_status.battery_cycle_capacity);

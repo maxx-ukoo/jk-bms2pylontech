@@ -18,6 +18,8 @@ Inverter show battery information:
 * charge current limit
 * discharge current limit
 
+# Old BMS support
+Support BMS with request 0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77. o enable this mode set jumper between PE0 and GND before board start.
 
 # Hardware
 

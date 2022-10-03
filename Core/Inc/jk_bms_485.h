@@ -11,6 +11,11 @@
 #include "stm32f4xx_hal.h"
 #include <stdbool.h>
 
+typedef enum  {
+	v0 = 0,
+	v1 = 1
+} bms_type;
+
 struct jk_bms_cell_voltage {
 	uint8_t cell_number;
 	uint16_t cell_voltage;
@@ -51,6 +56,9 @@ struct jk_bms_battery_status {
 	uint8_t battery_soc;
 	uint16_t battery_cycles;
 	uint32_t battery_cycle_capacity;
+
+	uint8_t current_low_byte;
+	uint8_t current_hi_byte;
 };
 
 struct jk_bms_battery_info {
@@ -63,8 +71,8 @@ struct jk_bms_battery_info {
 
 struct jk_bms_battery_info jk_bms_battery_info;
 
-void Request_JK_Battery_485_Status_Frame(UART_HandleTypeDef uart);
-bool JK_Battery_485_Check_Frame_CRC(uint8_t *data, uint16_t frame_size);
-void Parse_JK_Battery_485_Status_Frame(uint8_t *data);
+void Request_JK_Battery_485_Status_Frame(UART_HandleTypeDef uart, bms_type type);
+bool JK_Battery_485_Check_Frame_CRC(uint8_t *data, uint16_t frame_size, bms_type type);
+void Parse_JK_Battery_485_Status_Frame(uint8_t *data, bms_type type);
 
 #endif /* INC_JK_BMS_485_H_ */
