@@ -116,6 +116,9 @@ void Parse_JK_Battery_485_Status_Frame_v0(uint8_t *data) {
 	  // 0x84 0x80 0xD0: Current data                                32976                     0.01 A
 	  //63 64
 	  jk_bms_battery_info.battery_status.battery_current = getCurrent((uint16_t) data[pos + 1] << 8 | data[pos + 2]);
+	  jk_bms_battery_info.battery_status.current_low_byte = data[pos + 1];
+	  jk_bms_battery_info.battery_status.current_hi_byte = data[pos + 2];
+
 	  pos += 3; // 65
 	  // 0x85 0x0F: Battery remaining capacity                       15 %
 	  // 66
@@ -176,7 +179,7 @@ void Parse_JK_Battery_485_Status_Frame_v1(uint8_t *data) {
 
 	  jk_bms_battery_info.cells_number = data[23];
 	  jk_bms_battery_info.battery_status.battery_voltage = (uint16_t) data[2] << 8 | data[3];
-	  jk_bms_battery_info.battery_status.battery_current = (uint16_t) data[4] << 8 | data[5];
+	  jk_bms_battery_info.battery_status.battery_current = ((uint16_t) data[4] << 8 | data[5])/10;
 	  jk_bms_battery_info.battery_status.battery_soc = (uint8_t) data[21];
 	  jk_bms_battery_info.battery_status.battery_cycles =  (uint16_t) data[10] << 8 | data[11];
 	  jk_bms_battery_info.battery_status.temperature_sensor_count = (uint8_t) data[24];

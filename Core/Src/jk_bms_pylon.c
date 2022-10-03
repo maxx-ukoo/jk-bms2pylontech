@@ -57,8 +57,8 @@ void Tx_JK_BMS_Status_via_CAN(CAN_HandleTypeDef hcan) {
 	struct pylon_can_210124_battery_actual_values_u_it_t actual_values = {
 			// JK <= 6267 = 62.67V = 6267 => PYLON
 			.battery_voltage = jk_bms_battery_info.battery_status.battery_voltage,
-			// TODO test get current on real env
-			.battery_current = 0,
+			// JK <= 2974 = 29.74А = 297 => PYLON
+			.battery_current = jk_bms_battery_info.battery_status.battery_current / 10,
 			// JK <= 10 = 10 C = 100 => PYLON
 			.battery_temperature = temperature * 10
 	};
