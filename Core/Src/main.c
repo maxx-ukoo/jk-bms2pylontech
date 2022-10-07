@@ -118,7 +118,7 @@ uint8_t				USB_Console_TX_Buffer_Count = 0;
 uint8_t             UART_Rx_Buffer[1024];
 uint16_t			UART_Rx_Size;
 uint16_t			UART_Rx_Current_Size;
-uint8_t				dataReady;
+uint8_t				dataReady = 5;
 bms_type			protocol_type = v0;
 #ifdef ENABLE_LCD
 
@@ -640,7 +640,7 @@ void startGetBMSDataTask(void *argument)
 	/* Infinite loop */
   for(;;)
   {
-	  if (dataReady == 5) {
+	  if (dataReady = 5) {
 		  updateLCD();
 		  dataReady = 0;
 	  }
