@@ -41,7 +41,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-SPI_HandleTypeDef lcd_spi;
+
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -69,9 +69,11 @@ void Error_Handler(void);
 #define BMS_TYPE_SWITCH_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
 
-//#define ENABLE_LCD
+#define ENABLE_LCD
 
 #ifdef ENABLE_LCD
+
+extern SPI_HandleTypeDef lcd_spi;
 
 #define LCD_BL_Pin GPIO_PIN_12
 #define LCD_BL_GPIO_Port GPIOB

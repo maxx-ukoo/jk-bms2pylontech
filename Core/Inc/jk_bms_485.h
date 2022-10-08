@@ -69,7 +69,7 @@ struct jk_bms_battery_info {
 	struct jk_bms_limits battery_limits;
 };
 
-struct jk_bms_battery_info jk_bms_battery_info;
+extern struct jk_bms_battery_info jk_bms_battery_info;
 
 void Request_JK_Battery_485_Status_Frame(UART_HandleTypeDef uart, bms_type type);
 bool JK_Battery_485_Check_Frame_CRC(uint8_t *data, uint16_t frame_size, bms_type type);

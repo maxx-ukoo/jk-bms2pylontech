@@ -121,7 +121,7 @@ uint16_t			UART_Rx_Current_Size;
 uint8_t				dataReady = 5;
 bms_type			protocol_type = v0;
 #ifdef ENABLE_LCD
-
+SPI_HandleTypeDef	lcd_spi;
 
 uint8_t				lcd_soc = 110;
 uint16_t			lcd_alarms = 523;
