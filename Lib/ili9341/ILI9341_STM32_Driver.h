@@ -133,6 +133,7 @@
 #define SCREEN_HORIZONTAL_1		1
 #define SCREEN_VERTICAL_2			2
 #define SCREEN_HORIZONTAL_2		3
+#define SCREEN_VERTICAL_3			4
 
 void ILI9341_SPI_Init(void);
 void ILI9341_SPI_Send(unsigned char SPI_Data);

@@ -71,21 +71,21 @@ UART_HandleTypeDef huart1;
 osThreadId_t getBMSDataTaskHandle;
 const osThreadAttr_t getBMSDataTask_attributes = {
   .name = "getBMSDataTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for every10msTask */
 osThreadId_t every10msTaskHandle;
 const osThreadAttr_t every10msTask_attributes = {
   .name = "every10msTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for consoleOutputTa */
 osThreadId_t consoleOutputTaHandle;
 const osThreadAttr_t consoleOutputTa_attributes = {
   .name = "consoleOutputTa",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for consoleOutputQueue */
@@ -207,8 +207,9 @@ int main(void)
 #ifdef ENABLE_LCD
 
   ILI9341_Init();
-  ILI9341_Fill_Screen(WHITE);
+  //ILI9341_Set_Rotation(SCREEN_VERTICAL_3); // Bohdan work
   ILI9341_Set_Rotation(SCREEN_HORIZONTAL_2);
+  ILI9341_Fill_Screen(WHITE);
 
 #endif /* ENABLE_LCD */
 
@@ -518,18 +519,26 @@ void drawVoltage_Current() {
 	int16_t current = jk_bms_battery_info.battery_status.battery_current;
 	if (current > 0) {
 		// charging
+		ILI9341_Draw_Text_Space(">", 85, 18, WHITE, Font_26_B, WHITE, 15);
 		ILI9341_Draw_Text_Space("<", 65, 18, BLACK, Font_26_B, WHITE, 15);
 		ILI9341_Draw_Filled_Rectangle_Coord(70, 32, 105, 37, BLACK);
 	} else {
 		// discharging
+		ILI9341_Draw_Text_Space("<", 65, 18, WHITE, Font_26_B, WHITE, 15);
 		ILI9341_Draw_Text_Space(">", 85, 18, BLACK, Font_26_B, WHITE, 15);
 		ILI9341_Draw_Filled_Rectangle_Coord(70, 32, 105, 37, BLACK);
 	}
 
+	if (current < 0) {
+		current = -current;
+	}
+
 
 	sprintf(str, "%d", (int)(voltage/100));
+
 	ILI9341_Draw_Text(str, 112, 10, DARKCYAN, Font_37x47, WHITE);
 	ILI9341_Draw_Text(".", 190, 26, DARKCYAN, Font_34x36, WHITE);
+
 	sprintf(str, "%02d", (int)(voltage%100));
 	ILI9341_Draw_Text(str, 200, 10, DARKCYAN, Font_37x47, WHITE);
 
@@ -538,10 +547,16 @@ void drawVoltage_Current() {
 
 	sprintf(str, "%03d", (int)(current/100));
 
+	printf("Current 1 =-%s=\r\n", str);
+
 	ILI9341_Draw_Text(str, 75, 70, DARKCYAN, Font_37x47, WHITE);
 	ILI9341_Draw_Text(".", 190, 86, DARKCYAN, Font_34x36, WHITE);
+
+
 	sprintf(str, "%02d", (int)(current%100));
+	printf("Current 2 =-%s=\r\n", str);
 	ILI9341_Draw_Text(str, 200, 70, DARKCYAN, Font_37x47, WHITE);
+
 	ILI9341_Draw_Text("A", 275, 86, DARKCYAN, Font_34x36, WHITE);
 }
 
@@ -636,22 +651,24 @@ void startGetBMSDataTask(void *argument)
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
+  //uint8_t reset_count = 0;
   //updateLCD();
 	/* Infinite loop */
   for(;;)
   {
+	  osDelay(1000);
 	  if (dataReady = 5) {
 		  updateLCD();
 		  dataReady = 0;
 	  }
+	  // Force new query every 5 seconds
 	  if (UART_Rx_Current_Size == 0) {
 		  UART_Rx_Size = 0;
 		  HAL_UARTEx_ReceiveToIdle_IT(&huart1, UART_Rx_Buffer, 350);
 		  Request_JK_Battery_485_Status_Frame(huart1, protocol_type);
-		  HAL_GPIO_TogglePin(LED_D2_GPIO_Port, LED_D2_Pin); //Toggle the state of pin
+		  //HAL_GPIO_TogglePin(LED_D2_GPIO_Port, LED_D2_Pin); //Toggle the state of pin
 	  }
-
-	  osDelay(1000);
+	  HAL_GPIO_TogglePin(LED_D2_GPIO_Port, LED_D2_Pin); //Toggle the state of pin
   }
   /* USER CODE END 5 */
 }
@@ -713,6 +730,7 @@ void startEvery10msTask(void *argument)
 }
 
 /* USER CODE BEGIN Header_startConsoleOutputTask */
+
 /**
 * @brief Function implementing the consoleOutputTa thread.
 * @param argument: Not used

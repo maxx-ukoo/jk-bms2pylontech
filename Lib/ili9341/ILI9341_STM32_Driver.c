@@ -177,6 +177,11 @@ switch(screen_rotation)
 			LCD_WIDTH  = 320;
 			LCD_HEIGHT = 240;
 			break;
+		case SCREEN_VERTICAL_3:
+			ILI9341_Write_Data(0x40|0x08);
+			LCD_WIDTH = 320;
+			LCD_HEIGHT = 240;
+			break;
 		default:
 			//EXIT IF SCREEN ROTATION NOT VALID!
 			break;
