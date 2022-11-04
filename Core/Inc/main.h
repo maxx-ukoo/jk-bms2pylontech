@@ -74,6 +74,7 @@ void Error_Handler(void);
 #ifdef ENABLE_LCD
 
 extern SPI_HandleTypeDef lcd_spi;
+extern UART_HandleTypeDef modbus_huart;
 
 #define LCD_BL_Pin GPIO_PIN_12
 #define LCD_BL_GPIO_Port GPIOB
