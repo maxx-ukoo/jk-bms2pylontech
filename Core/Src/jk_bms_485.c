@@ -12,7 +12,6 @@ uint8_t request_Status_Frame_v0[] = {0x4E, 0x57, 0x00, 0x13, 0x00, 0x00, 0x00, 0
 uint8_t request_Status_Frame_v1[] = {0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77};
 
 uint16_t getCurrent(const uint16_t value) {
-	// TODO test current data on real BMS
 	if ((value & 0x8000) == 0x8000) {
 		return (value & 0x7FFF);
 	} else {
@@ -201,10 +200,10 @@ void Parse_JK_Battery_485_Status_Frame_v1(uint8_t *data) {
 	  // No data in response for these values
 	  //jk_bms_battery_info.battery_status.battery_cycle_capacity
 	  //jk_bms_battery_info.battery_alarms.alarm_data;
-	  //jk_bms_battery_info.battery_limits.battery_charge_voltage;
-	  //jk_bms_battery_info.battery_limits.battery_discharge_voltage;
-	  //jk_bms_battery_info.battery_limits.battery_discharge_current_limit;
-	  //jk_bms_battery_info.battery_limits.battery_charge_current_limit;
+	  jk_bms_battery_info.battery_limits.battery_charge_voltage = 5760;
+	  jk_bms_battery_info.battery_limits.battery_discharge_voltage = 4160;
+	  jk_bms_battery_info.battery_limits.battery_discharge_current_limit = -150;
+	  jk_bms_battery_info.battery_limits.battery_charge_current_limit = 100;
 }
 
 void Parse_JK_Battery_485_Status_Frame(uint8_t *data, bms_type type) {
