@@ -40,7 +40,9 @@ struct pylon_rs485_frame Pylon_485_decode_frame(uint8_t *data, uint16_t frame_si
 
 void pylon_rs485_process_request(UART_HandleTypeDef uart, struct pylon_rs485_frame *frame);
 void pylon_rs485_process_protocol_version_request(UART_HandleTypeDef uart, struct pylon_rs485_frame *frame);
-void pylon_rs485_send_frame(UART_HandleTypeDef uart, uint16_t len, uint8_t info);
+void pylon_rs485_process_manufacturer_info_request(UART_HandleTypeDef uart, struct pylon_rs485_frame *frame);
+void pylon_rs485_processget_system_parameters_request(UART_HandleTypeDef uart, struct pylon_rs485_frame *frame);
+void pylon_rs485_send_frame(UART_HandleTypeDef uart, uint16_t len, uint8_t *info);
 
 //uint8_t pylon_rs485_get_responce_protocol_version(struct pylon_rs485_frame *frame, uint8_t *data);
 //uint8_t pylon_rs485_encode_frame(uint8_t *frame, uint8_t *raw_frame, uint16_t frame_size);
