@@ -69,7 +69,7 @@ void Error_Handler(void);
 #define BMS_TYPE_SWITCH_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
 
-#define ENABLE_LCD
+//#define ENABLE_LCD
 
 #ifdef ENABLE_LCD
 

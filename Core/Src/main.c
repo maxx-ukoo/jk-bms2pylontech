@@ -25,6 +25,7 @@
 /* USER CODE BEGIN Includes */
 #include "jk_bms_485.h"
 #include "jk_bms_pylon.h"
+#include "pylon_485.h"
 
 #ifdef ENABLE_LCD
 
@@ -66,6 +67,7 @@ CAN_HandleTypeDef hcan1;
 SPI_HandleTypeDef hspi2;
 
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 
 /* Definitions for getBMSDataTask */
 osThreadId_t getBMSDataTaskHandle;
@@ -88,13 +90,22 @@ const osThreadAttr_t consoleOutputTa_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
+/* Definitions for process_485_Request_Task */
+osThreadId_t process_485_Request_TaskHandle;
+const osThreadAttr_t process_485_Request_Task_attributes = {
+  .name = "process_485_Request_Task",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* Definitions for consoleOutputQueue */
 osMessageQueueId_t consoleOutputQueueHandle;
 const osMessageQueueAttr_t consoleOutputQueue_attributes = {
   .name = "consoleOutputQueue"
 };
 /* USER CODE BEGIN PV */
-
+uint8_t             UART_Rx_RS485_PYLON_Buffer[64];
+uint8_t				rs485_Pylon_data_size = 0;
+uint8_t				rs485_Pylon_data_ready = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -103,9 +114,11 @@ static void MX_GPIO_Init(void);
 static void MX_CAN1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_SPI2_Init(void);
+static void MX_USART2_UART_Init(void);
 void startGetBMSDataTask(void *argument);
 void startEvery10msTask(void *argument);
 void startConsoleOutputTask(void *argument);
+void startProcess_485_Request_Task(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -161,6 +174,7 @@ int main(void)
   MX_CAN1_Init();
   MX_USART1_UART_Init();
   MX_SPI2_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -197,6 +211,9 @@ int main(void)
 
   /* creation of consoleOutputTa */
   consoleOutputTaHandle = osThreadNew(startConsoleOutputTask, NULL, &consoleOutputTa_attributes);
+
+  /* creation of process_485_Request_Task */
+  process_485_Request_TaskHandle = osThreadNew(startProcess_485_Request_Task, NULL, &process_485_Request_Task_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -397,6 +414,39 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+  HAL_UARTEx_ReceiveToIdle_IT(&huart2, UART_Rx_RS485_PYLON_Buffer, 32);
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -478,6 +528,22 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
 		} else {
 			HAL_UARTEx_ReceiveToIdle_IT(huart, &UART_Rx_Buffer[UART_Rx_Size], 350);
 		}
+	} else if (huart->Instance == USART2) {
+		rs485_Pylon_data_size += size;
+		if (Pylon_485_Check_CRC(UART_Rx_RS485_PYLON_Buffer, rs485_Pylon_data_size)) {
+			rs485_Pylon_data_ready = 1;
+		} else {
+			HAL_UARTEx_ReceiveToIdle_IT(huart, &UART_Rx_RS485_PYLON_Buffer[rs485_Pylon_data_size], 32);
+		}
+	}
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if (huart->Instance == USART1) {
+		printf("HAL_UART_RxCpltCallback USART1\r\n");
+	} else if (huart->Instance == USART2) {
+		printf("HAL_UART_RxCpltCallback USART2\r\n");
 	}
 }
 
@@ -544,17 +610,14 @@ void drawVoltage_Current() {
 
 	ILI9341_Draw_Text("V", 275, 26, DARKCYAN, Font_34x36, WHITE);
 
-
 	sprintf(str, "%03d", (int)(current/100));
-
-	printf("Current 1 =-%s=\r\n", str);
 
 	ILI9341_Draw_Text(str, 75, 70, DARKCYAN, Font_37x47, WHITE);
 	ILI9341_Draw_Text(".", 190, 86, DARKCYAN, Font_34x36, WHITE);
 
 
 	sprintf(str, "%02d", (int)(current%100));
-	printf("Current 2 =-%s=\r\n", str);
+
 	ILI9341_Draw_Text(str, 200, 70, DARKCYAN, Font_37x47, WHITE);
 
 	ILI9341_Draw_Text("A", 275, 86, DARKCYAN, Font_34x36, WHITE);
@@ -754,6 +817,41 @@ void startConsoleOutputTask(void *argument)
 		taskEXIT_CRITICAL();
 	}
   /* USER CODE END startConsoleOutputTask */
+}
+
+/* USER CODE BEGIN Header_startProcess_485_Request_Task */
+/**
+* @brief Function implementing the process_485_Request_Task thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startProcess_485_Request_Task */
+void startProcess_485_Request_Task(void *argument)
+{
+  /* USER CODE BEGIN startProcess_485_Request_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+	  if (rs485_Pylon_data_ready > 0) {
+		  #ifdef __ENABLE_CONSOLE_DEBUG__
+		  	  printf("----------- PYLON RS485 Request ---------------------\r\n");
+			  for (int i=0; i<rs485_Pylon_data_size; i++) {
+				  printf("%02X ", UART_Rx_RS485_PYLON_Buffer[i]);
+			  }
+
+			  struct pylon_rs485_frame frame = Pylon_485_decode_frame(UART_Rx_RS485_PYLON_Buffer, rs485_Pylon_data_size);
+			  printf("CRC %04X\r\n", frame.crc);
+			  printf("Frame command: %02X\r\n", frame.cid2);
+			  pylon_rs485_process_request(huart2, &frame);
+ 	 	  #endif /* __ENABLE_CONSOLE_DEBUG__ */
+		  printf("\r\n");
+		  rs485_Pylon_data_ready = 0;
+		  rs485_Pylon_data_size = 0;
+		  HAL_UARTEx_ReceiveToIdle_IT(&huart2, UART_Rx_RS485_PYLON_Buffer, 32);
+	  }
+    osDelay(10);
+  }
+  /* USER CODE END startProcess_485_Request_Task */
 }
 
 /**

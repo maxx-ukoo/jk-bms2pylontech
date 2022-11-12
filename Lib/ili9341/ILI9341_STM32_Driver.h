@@ -92,7 +92,15 @@
 #define ILI9341_SCREEN_WIDTH 	320
 
 //SPI INSTANCE
+#ifdef ENABLE_LCD
+
 #define HSPI_INSTANCE							&lcd_spi
+
+#else
+#define HSPI_INSTANCE							NULL
+
+#endif /* ENABLE_LCD */
+
 
 //CHIP SELECT PIN AND PORT, STANDARD GPIO
 #define LCD_CS_PORT								TFT_CS_GPIO_Port
